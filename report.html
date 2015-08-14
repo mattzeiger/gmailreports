@@ -1,0 +1,287 @@
+<html>
+<head>
+<title>Gmail Report</title>
+<!-- REPORTING VISUALIZER D3/C3: -->
+<!-- Load c3.css -->
+<link href="./styles/c3.css" rel="stylesheet" type="text/css">
+<!-- Load d3.js and c3.js -->
+<script src="./js/d3.min.js" charset="utf-8"></script>
+<script src="./js/c3.min.js"></script> <!--http://c3js.org/reference.html -->
+<script src="./js/moment.js"></script> <!--http://momentjs.com/docs/-->
+<!-- END REPORTING VISUALIZER -->
+
+<script type="text/javascript">
+  // Google GMAIL API
+  //https://developers.google.com/gmail/api/quickstart/js
+  var userId = 'me'; //always/only the current user
+
+  var CLIENT_ID = '346466838089-gun456s3rmpa3acd1nbfjf6fjrq79cnc.apps.googleusercontent.com'; //registered at https://console.developers.google.com
+
+  var SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']; //only permissions we need
+
+  /**
+   * Check if current user has authorized this application.
+   */
+  function checkAuth() {
+    gapi.auth.authorize(
+      {
+        'client_id': CLIENT_ID,
+        'scope': SCOPES,
+        'immediate': true
+      }, handleAuthResult);
+  }
+
+  /**
+   * Handle response from authorization server.
+   *
+   * @param {Object} authResult Authorization result.
+   */
+  function handleAuthResult(authResult) {
+    var authorizeDiv = document.getElementById('authorize-div');
+    if (authResult && !authResult.error) {
+      // Hide auth UI, then load client library.
+      authorizeDiv.style.display = 'none';
+      //load Gmail API:
+      gapi.client.load('gmail', 'v1', loadSentMessages);
+    } else {
+      // Show auth UI, allowing the user to initiate authorization by
+      // clicking authorize button.
+      authorizeDiv.style.display = 'inline';
+    }
+  }
+
+  /**
+   * Initiate auth flow in response to user clicking authorize button.
+   *
+   * @param {Event} event Button click event.
+   */
+  function handleAuthClick(event) {
+    gapi.auth.authorize(
+      {client_id: CLIENT_ID, scope: SCOPES, immediate: false},
+      handleAuthResult);
+    return false;
+  }
+
+
+	//we pull from 30 days back by default - calculate the formatted date 30 days ago:
+	var dateRange = 30;
+	var priorDate = moment().subtract(dateRange, 'days').format('YYYY/MM/DD'); //Gmail API needs format YYYY/MM/DD
+
+	var chartDates = new Array(); //Needs to be in the format "YYYY-MM-DD"
+	chartDates.push("Date");
+	for(var i = 0;i<dateRange;i++) {
+		chartDates.push( moment().subtract(i, 'days').format('YYYY-MM-DD') );
+	}
+	/*
+		load Sent Messages
+	*/
+	var SentMessages = new Array(); //map of the dates & message counts
+	var sentMessageCount = 0; //keep track of the total count of the result set while we asyncronously load each individual message
+	var sentLoadCount = 0;	
+		
+	function loadSentMessages() {
+		var query;  	
+		
+		query = 'in:sent after:' + priorDate; 
+		SearchMessages(query, function(result) {
+			sentMessageCount = result.length;
+			console.log("Sent Message Count:" + sentMessageCount);			
+			for(var i = 0;i<result.length;i++) {
+				getMessage(result[i].id, parseSentMessage);  		
+			}			
+		});
+  	}
+
+
+	/*
+	//General Query for searching messages from Gmail API
+	//Auto-paginates to load all results
+	*/
+	function SearchMessages(query, callback) {  	
+		var getPageOfMessages = function(request, result) {
+		request.execute(function(resp) {
+		  result = result.concat(resp.messages);
+		  var nextPageToken = resp.nextPageToken;
+		  if (nextPageToken) {
+		    request = gapi.client.gmail.users.messages.list({
+		      'userId': userId,
+		      'pageToken': nextPageToken,
+		      'q': query
+		    });
+		    getPageOfMessages(request, result);
+		  } else {
+		    callback(result);
+		  }
+		});
+		};
+	var initialRequest = gapi.client.gmail.users.messages.list({
+		'userId': userId,
+		'q': query
+	});
+	getPageOfMessages(initialRequest, []);
+	}
+
+	/*
+		Request the details of an individual message from the Gmail API
+	*/
+	function getMessage(messageId, callback) {
+		var request = gapi.client.gmail.users.messages.get({
+		'userId': userId, //defined globally as 'me'
+		'id': messageId,
+		'format': 'metadata'
+		});
+		request.execute(callback);
+	}
+
+	function parseSentMessage(response) {		
+		var messageHeaderDate = grabDateHeader(response.payload.headers);
+		if (!messageHeaderDate) {
+			console.log('ERROR, no Date on Message ' + response.id);
+		}
+		
+		var messageDate = moment(messageHeaderDate).format("YYYY-MM-DD");
+		if (!SentMessages[messageDate]) {			
+			SentMessages[messageDate] = 1;			
+		} else {
+			SentMessages[messageDate]++;
+		}
+		sentLoadCount++;
+
+		if (sentLoadCount == sentMessageCount) {
+			loadReceivedMessages();			
+		}	
+	}
+
+	function grabDateHeader(messageHeaders) {
+		//check each header value for the date (its not always in the same place)
+		if (messageHeaders[2].name == "Date") { //its usually at this spot
+			return messageHeaders[2].value;
+		} else {
+			for(var j = 0;j<messageHeaders.length;j++) { 
+				if (messageHeaders[j].name == "Date") {
+					return messageHeaders[j].value;
+				}
+			}
+			return false;		
+		}		
+	}
+
+
+	/*
+	load Received Messages
+	*/
+	var ReceivedMessages = new Array(); //map of the dates & message counts
+	var receivedMessageCount = 0; //keep track of the total count of the result set while we asyncronously load each individual message
+	var receivedLoadCount = 0;	
+		
+	function loadReceivedMessages() {
+		var query;  	
+		
+		query = '-in:sent after:' + priorDate; 
+		SearchMessages(query, function(result) {
+			receivedMessageCount = result.length;
+			console.log("Received Message Count:" + receivedMessageCount);			
+			for(var i = 0;i<result.length;i++) {
+				getMessage(result[i].id, parseReceivedMessage);  		
+			}			
+		});
+  	}
+
+  	var emailSent = new Array();
+	var emailReceived = new Array();
+				
+  	function parseReceivedMessage(response) {		
+		var messageHeaderDate = grabDateHeader(response.payload.headers);
+		if (!messageHeaderDate) {
+			console.log('ERROR, no Date on Message ' + response.id);
+		}
+		
+		var messageDate = moment(messageHeaderDate).format("YYYY-MM-DD");
+		if (!ReceivedMessages[messageDate]) {			
+			ReceivedMessages[messageDate] = 1;						
+		} else {
+			ReceivedMessages[messageDate]++;
+		}
+		receivedLoadCount++;
+
+		if (receivedLoadCount == receivedMessageCount) {
+			//done loading, lets parse
+			emailSent.push("E-mails Sent"); //first field in the array in the label for the chart
+
+			emailReceived.push("E-mails Received");			
+
+			for(var i = 1;i<chartDates.length;i++) {
+				if (!SentMessages[chartDates[i]]) {
+					emailSent.push(0);
+				} else {
+					emailSent.push(SentMessages[chartDates[i]]);
+				}
+
+				if (!ReceivedMessages[chartDates[i]]) {
+					emailReceived.push(0);
+				} else {
+					emailReceived.push(ReceivedMessages[chartDates[i]]);
+				}
+			}
+			
+		  	chart.load({
+		        columns: [
+		        	chartDates,
+		        	emailReceived,
+		            emailSent		            
+		        ]
+		    });
+		}	
+	}
+
+
+</script>
+<script src="https://apis.google.com/js/client.js?onload=checkAuth">
+</script>
+</head>
+<body>
+<script>
+/*
+//Goal: show stats on emails sent per day & emails received per day
+
+//Stretch: filter by frequent domains (e.g. fxnetworks.com, blitzagency.com, etc. <= auto-populated)
+*/
+</script>
+<div id="authorize-div" style="display: none">
+      <span>Authorize access to Gmail API</span>
+      <!--Button for the user to click to initiate auth sequence -->
+      <button id="authorize-button" onclick="handleAuthClick(event)">
+        Authorize
+      </button>
+    </div>
+    <pre id="output"></pre>
+<div id = "chart"></div>
+
+<script>
+
+var defaultDate = ['Date', moment().format("YYYY-MM-DD")];
+
+var chart = c3.generate({
+    data: {
+        x: 'Date',
+//        xFormat: '%Y%m%d', // 'xFormat' can be used as custom format of 'x'
+        columns: [
+            defaultDate,
+            ['E-mails Received', 0,],
+            ['E-mails Sent', 0]            
+        ]
+    },
+    axis: {
+        x: {
+            type: 'timeseries',
+            tick: {
+                format: '%m/%d/%Y'
+            }
+        }
+    }
+});
+
+</script>
+
+</body>
+</html>
