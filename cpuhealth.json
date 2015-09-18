@@ -1,0 +1,13 @@
+{
+	"data" : {
+		"id": "e-dgip5ecjbx",
+		"application": "publisher-58152D",
+		"CNAME": "aem-Envi-1ICZ290LRM2XR-maphmp4kp3.elasticbeanstalk.com",
+		"name": "aem-Envi-1ICZ290LRM2XR",
+		"interval" : "hourly",
+		"timestamp" : ["1:00", "2:00", "3:00", "4:00", "5:00"],
+		"health" : ["warning", "warning", "rebooting", "active", "active"],
+		"amount" : [100, 100, 50, 30, 30]      
+	}
+
+}

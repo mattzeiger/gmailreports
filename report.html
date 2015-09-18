@@ -154,16 +154,20 @@
 
 	function grabDateHeader(messageHeaders) {
 		//check each header value for the date (its not always in the same place)
-		if (messageHeaders[2].name == "Date") { //its usually at this spot
-			return messageHeaders[2].value;
-		} else {
-			for(var j = 0;j<messageHeaders.length;j++) { 
-				if (messageHeaders[j].name == "Date") {
-					return messageHeaders[j].value;
+		if(typeof messageHeaders[2] !== 'undefined') {
+			if ((messageHeaders[2] !== null) && (messageHeaders[2].hasOwnProperty("name"))) {
+				if (messageHeaders[2].name == "Date") { //its usually at this spot
+					return messageHeaders[2].value;
 				}
 			}
-			return false;		
-		}		
+		}
+		for(var j = 0;j<messageHeaders.length;j++) { 
+			if (messageHeaders[j].name == "Date") {
+				return messageHeaders[j].value;
+			}
+		}
+		return false;		
+	
 	}
 
 
@@ -231,6 +235,8 @@
 		            emailSent		            
 		        ]
 		    });
+
+		    document.getElementById('loadingBar').style.display = "none";
 		}	
 	}
 
@@ -256,7 +262,7 @@
     </div>
     <pre id="output"></pre>
 <div id = "chart"></div>
-
+<div id = "loadingBar" style = "top: -200px; position: relative; margin-left: auto; width: 58%;"><img src = "./styles/ajax-loader.gif" border = "0" /></div>
 <script>
 
 var defaultDate = ['Date', moment().format("YYYY-MM-DD")];

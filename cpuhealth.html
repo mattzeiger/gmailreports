@@ -1,0 +1,141 @@
+<html>
+<head>
+<title>Gmail Report</title>
+<!-- REPORTING VISUALIZER D3/C3: -->
+<!-- Load c3.css -->
+<link href="./styles/c3.css" rel="stylesheet" type="text/css">
+<!-- Load d3.js and c3.js -->
+<script src="./js/d3.min.js" charset="utf-8"></script>
+<script src="./js/c3.min.js"></script> <!--http://c3js.org/reference.html -->
+<script src="./js/moment.js"></script> <!--http://momentjs.com/docs/-->
+<!-- END REPORTING VISUALIZER -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+
+<script type="text/javascript">
+
+	$.getJSON( "cpuhealth.json", function( data ) {
+	  //var items = [];
+
+	//	  console.log(data.data.amount);
+
+	var times = new Array("x").concat(data.data.timestamp);
+	var amounts = new Array("Health").concat(data.data.amount);
+	console.log(times);
+	console.log(amounts);
+	
+
+    var chart = c3.generate({
+        axis: {
+          x: {
+            min: 0,
+            max: 100
+          }
+        },
+        /*data: {
+            x : 'x',
+            columns: [
+                ["x", "1:00", "2:00", "3:00", "4:00", "5:00"],
+                ["Health", 100, 100, 50, 30, 30]
+            ],
+            type: 'bar'
+        },*/
+        data: {
+            x: 'x',
+            columns: [
+                times,
+                amounts
+            ],
+            type: 'bar'
+        },
+        axis: {
+            x: {
+                type: 'category',
+                tick: {
+                    // this also works for non timeseries data
+                    values: ['2am', '5am']
+                }
+            }
+        },
+        bar: {
+            width: {
+                ratio: .15 // this makes bar width 50% of length between ticks
+            }
+            // or
+            //width: 100 // this makes bar width 100px
+        }
+
+        /*
+        data: {
+            x: 'Date',
+    //        xFormat: '%Y%m%d', // 'xFormat' can be used as custom format of 'x'
+            columns: [
+                defaultDate,
+                ['E-mails Received', 0,],
+                ['E-mails Sent', 0]            
+            ]
+        },
+        axis: {
+            x: {
+                type: 'timeseries',
+                tick: {
+                    format: '%m/%d/%Y'
+                }
+            }
+        }*/
+
+    });
+/*
+  	chart.load({
+		columns: [
+			times,
+			amounts
+		]
+	});*/
+
+	/*
+	,
+	    	data.data.amount	
+	*/
+
+	  /*
+	  $.each( data, function( key, val ) {
+	    items.push( "<li id='" + key + "'>" + val + "</li>" );
+	  });
+	 
+	  $( "<ul/>", {
+	    "class": "my-new-list",
+	    html: items.join( "" )
+	  }).appendTo( "body" );
+
+
+
+  	
+
+		*/
+		document.getElementById('loadingBar').style.display = "none";
+	});
+    
+</script>
+</head>
+<body>
+<script>
+/*
+//Goal: show stats on emails sent per day & emails received per day
+
+//Stretch: filter by frequent domains (e.g. fxnetworks.com, blitzagency.com, etc. <= auto-populated)
+*/
+</script>
+
+<pre id="output"></pre>
+<div id = "chart"></div>
+<div id = "loadingBar" style = "top: -200px; position: relative; margin-left: auto; width: 58%;"><img src = "./styles/ajax-loader.gif" border = "0" /></div>
+<script>
+
+var defaultDate = ['Date', moment().format("YYYY-MM-DD")];
+
+
+
+</script>
+
+</body>
+</html>
